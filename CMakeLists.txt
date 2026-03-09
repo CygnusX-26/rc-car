@@ -22,4 +22,10 @@ pico_enable_stdio_usb(main 1)
 pico_enable_stdio_uart(main 0)
 pico_add_extra_outputs(main)
 target_include_directories(main PRIVATE ${CMAKE_CURRENT_LIST_DIR} )
-target_link_libraries(main pico_cyw43_arch_lwip_threadsafe_background pico_stdlib)
+target_link_libraries(main 
+    pico_cyw43_arch_lwip_threadsafe_background 
+    pico_stdlib
+    pico_btstack_ble
+    pico_btstack_cyw43
+)
+pico_btstack_make_gatt_header(main PRIVATE "${CMAKE_CURRENT_LIST_DIR}/bluetooth_peripheral.gatt")
