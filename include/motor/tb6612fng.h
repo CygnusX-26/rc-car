@@ -5,16 +5,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define STBY_PIN_1 (16)
-
-#define PWMA_PIN_1 (17)
-#define AIN1_PIN_1 (18)
-#define AIN2_PIN_1 (19)
-
-#define PWMB_PIN_1 (20)
-#define BIN1_PIN_1 (21)
-#define BIN2_PIN_1 (22)
-
 #define INIT_PIN(pin) { \
     gpio_init(pin); \
     gpio_set_dir(pin, GPIO_OUT); \
