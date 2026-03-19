@@ -19,6 +19,13 @@
 #define CHANNEL_MAP 0x07
 #define FILTER_POLICY 0x00
 
+/*
+
+Standalone example
+https://github.com/raspberrypi/pico-examples/tree/master/pico_w/bt/standalone
+
+*/
+
 static uint8_t advertisement_data[] = {
     // Flags general discoverable
     0x02,
