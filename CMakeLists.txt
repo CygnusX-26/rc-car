@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Default to Pico 2 W so CYW43/lwIP targets are available unless overridden.
 if (NOT DEFINED PICO_BOARD)
     set(PICO_BOARD pico2_w CACHE STRING "Board type")

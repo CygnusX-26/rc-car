@@ -2,3 +2,4 @@ build
 pico-sdk
 .DS_Store
 .vscode
+.cache
