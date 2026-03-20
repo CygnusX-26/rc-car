@@ -25,7 +25,7 @@ Mac (can use homebrew)
 
 ```sh
 brew install cmake
-brew install gcc-arm-embedded
+brew install --cask gcc-arm-embedded
 ```
 
 make sure the `pico-sdk` is in the directory of the rc-car project.
