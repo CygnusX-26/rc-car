@@ -22,8 +22,8 @@ typedef struct tb6612fng {
 } tb6612fng_t;
 
 typedef enum {
-    MOTOR_A,
-    MOTOR_B,
+    MOTOR_LEFT,
+    MOTOR_RIGHT,
 } motor_t;
 
 typedef enum {
@@ -33,9 +33,14 @@ typedef enum {
     MOTOR_ACTION_COAST,
 } motor_action_t;
 
-void tb6612fng_init(const tb6612fng_t*);
-void tb6612fng_toggle_enable(const tb6612fng_t*, bool);
-void tb6612fng_set_pwm(const tb6612fng_t*, motor_t, uint8_t);
-void tb6612fng_set_action(const tb6612fng_t*, motor_t, motor_action_t);
+void tb6612fng_init(const tb6612fng_t *drv);
+void tb6612fng_toggle_enable(const tb6612fng_t *drv, bool enabled);
+void tb6612fng_set_action(const tb6612fng_t *drv, motor_t motor, motor_action_t action);
+
+// pwm duty cycle in range [0, 255]
+void tb6612fng_set_pwm(const tb6612fng_t *drv, motor_t motor, uint8_t pwm);
+
+// speed in range [-100, 100]
+void tb6612fng_drive(const tb6612fng_t *drv, motor_t motor, int8_t speed);
 
 #endif // MOTOR_CONTROLLER_H

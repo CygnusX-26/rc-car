@@ -2,10 +2,11 @@
 #include "pico/stdlib.h"
 #include "motor/tb6612fng.h"
 #include "pico/cyw43_arch.h"
+#include "car/car_control.h"
 
 #define DELAY_MS (2000)
 
-static const tb6612fng_t left_driver = {
+static const tb6612fng_t driver = {
     .stby_pin = 16,
     .pwma_pin = 17,
     .ain1_pin = 18,
@@ -20,21 +21,44 @@ int main() {
     hard_assert(cyw43_arch_init() == PICO_OK);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
 
-    tb6612fng_init(&left_driver);
-    tb6612fng_toggle_enable(&left_driver, true);
-    tb6612fng_set_pwm(&left_driver, MOTOR_A, 0); // currently just enables the pin fix for speed later.
+    car_control_t car;
+    car_control_init(&car, &driver);
 
     while (true) {
-        tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_FORWARD);
+        // forward slow
+        car_control_set_command(&car, 30, 0);
         sleep_ms(DELAY_MS);
 
-        tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_BACKWARD);
+        // forward medium
+        car_control_set_command(&car, 60, 0);
         sleep_ms(DELAY_MS);
 
-        tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_BRAKE);
+        // forward fast
+        car_control_set_command(&car, 100, 0);
         sleep_ms(DELAY_MS);
 
-        tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_COAST);
+        // left and foward
+        car_control_set_command(&car, 60, -25);
+        sleep_ms(DELAY_MS);
+
+        // right and forward
+        car_control_set_command(&car, 60, 25);
+        sleep_ms(DELAY_MS);
+
+        // backward
+        car_control_set_command(&car, -50, 0);
+        sleep_ms(DELAY_MS);
+
+        // spin left
+        car_control_set_command(&car, 0, -60);
+        sleep_ms(DELAY_MS);
+
+        // spin right
+        car_control_set_command(&car, 0, 60);
+        sleep_ms(DELAY_MS);
+
+        // stop
+        car_control_stop(&car);
         sleep_ms(DELAY_MS);
     }
 }
