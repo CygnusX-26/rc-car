@@ -27,17 +27,14 @@ https://github.com/raspberrypi/pico-examples/tree/master/pico_w/bt/standalone
 */
 
 static uint8_t advertisement_data[] = {
-    // Flags general discoverable
+    // flags general discoverable
     0x02,
     BLUETOOTH_DATA_TYPE_FLAGS,
     APP_AD_FLAGS,
 
-    // Name
-    0x07,
+    // name
+    0x04,
     BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME,
-    'R',
-    'C',
-    ' ',
     'C',
     'A',
     'R',
