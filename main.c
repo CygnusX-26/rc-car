@@ -75,7 +75,6 @@ static int att_write_callback(hci_con_handle_t connection_handle,
                               uint16_t buffer_size)
 {
     UNUSED(connection_handle);
-    UNUSED(att_handle);
     UNUSED(transaction_mode);
     UNUSED(offset);
 
@@ -190,6 +189,9 @@ int main()
 {
     // enable IO for printing
     stdio_init_all();
+    // delay before any printing to get setup
+    sleep_ms(20000);
+
     // turn on board
     hard_assert(cyw43_arch_init() == PICO_OK);
 
