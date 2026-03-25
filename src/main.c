@@ -22,8 +22,8 @@ int main() {
 
     tb6612fng_init(&left_driver);
     tb6612fng_toggle_enable(&left_driver, true);
-    tb6612fng_set_pwm(&left_driver, MOTOR_A, 0); // currently just enables the pin fix for speed later.
-    tb6612fng_set_pwm(&left_driver, MOTOR_B, 0);
+    tb6612fng_set_pwm(&left_driver, MOTOR_A, 255); // currently just enables the pin fix for speed later.
+    tb6612fng_set_pwm(&left_driver, MOTOR_B, 200);
 
     while (true) {
         tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_FORWARD);
