@@ -23,18 +23,19 @@ int main() {
     tb6612fng_init(&left_driver);
     tb6612fng_toggle_enable(&left_driver, true);
     tb6612fng_set_pwm(&left_driver, MOTOR_A, 0); // currently just enables the pin fix for speed later.
+    tb6612fng_set_pwm(&left_driver, MOTOR_B, 0);
 
     while (true) {
         tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_FORWARD);
+        tb6612fng_set_action(&left_driver, MOTOR_B, MOTOR_ACTION_FORWARD);
         sleep_ms(DELAY_MS);
 
         tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_BACKWARD);
+        tb6612fng_set_action(&left_driver, MOTOR_B, MOTOR_ACTION_BACKWARD);
         sleep_ms(DELAY_MS);
 
         tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_BRAKE);
-        sleep_ms(DELAY_MS);
-
-        tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_COAST);
+        tb6612fng_set_action(&left_driver, MOTOR_B, MOTOR_ACTION_BRAKE);
         sleep_ms(DELAY_MS);
     }
 }
