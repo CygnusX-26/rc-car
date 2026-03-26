@@ -73,9 +73,12 @@ static int att_write_callback(hci_con_handle_t connection_handle,
     }
     printf("\n");
 
-    if (buffer_size == 2)
+    if (buffer_size == 3)
     {
-        printf("Throttle: %d, Steering: %d\n", buffer[0], buffer[1]);
+        uint8_t magnitude = buffer[0];
+        // assume little endian sent over
+        uint16_t angle = buffer[1] | (buffer[2] << 8);
+        printf("Magnitude: %d, Angle: %d\n", magnitude, angle);
     }
 
     return 0;
