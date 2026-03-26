@@ -41,3 +41,19 @@ make -j4
 ```
 
 Will produce a binary named `main.uf2` which can be flashed to the Pico.
+
+### Picotool Flashing
+
+Alternate method of flashing.
+
+```sh
+picotool load main.elf -fx
+```
+
+## TTY / IO Output
+
+Be sure to put some delay on the main program before your print statements. This is so your screen/minicom can take in that output. This only works after flashing hence why the delay is important.
+
+```sh
+screen /dev/tty.usbmodem1101 115200
+```
