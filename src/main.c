@@ -1,4 +1,4 @@
-
+#include "bt/peripheral.h"
 #include "pico/stdlib.h"
 #include "motor/tb6612fng.h"
 #include "pico/cyw43_arch.h"
@@ -15,27 +15,37 @@ static const tb6612fng_t left_driver = {
     .bin2_pin = 22,
 };
 
-int main() {
+int main()
+{
+    // enable IO for printing
+    stdio_init_all();
+    // delay before any printing to get setup
+    sleep_ms(20000);
+
     // Init cyw43 board
     hard_assert(cyw43_arch_init() == PICO_OK);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
 
-    tb6612fng_init(&left_driver);
-    tb6612fng_toggle_enable(&left_driver, true);
-    tb6612fng_set_pwm(&left_driver, MOTOR_A, 255); // currently just enables the pin fix for speed later.
-    tb6612fng_set_pwm(&left_driver, MOTOR_B, 200);
+    // start bluetooth, creates bstack infinite loop
+    bluetooth_init();
 
-    while (true) {
-        tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_FORWARD);
-        tb6612fng_set_action(&left_driver, MOTOR_B, MOTOR_ACTION_FORWARD);
-        sleep_ms(DELAY_MS);
+    // tb6612fng_init(&left_driver);
+    // tb6612fng_toggle_enable(&left_driver, true);
+    // tb6612fng_set_pwm(&left_driver, MOTOR_A, 255); // currently just enables the pin fix for speed later.
+    // tb6612fng_set_pwm(&left_driver, MOTOR_B, 200);
 
-        tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_BACKWARD);
-        tb6612fng_set_action(&left_driver, MOTOR_B, MOTOR_ACTION_BACKWARD);
-        sleep_ms(DELAY_MS);
+    // while (true)
+    // {
+    //     tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_FORWARD);
+    //     tb6612fng_set_action(&left_driver, MOTOR_B, MOTOR_ACTION_FORWARD);
+    //     sleep_ms(DELAY_MS);
 
-        tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_BRAKE);
-        tb6612fng_set_action(&left_driver, MOTOR_B, MOTOR_ACTION_BRAKE);
-        sleep_ms(DELAY_MS);
-    }
+    //     tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_BACKWARD);
+    //     tb6612fng_set_action(&left_driver, MOTOR_B, MOTOR_ACTION_BACKWARD);
+    //     sleep_ms(DELAY_MS);
+
+    //     tb6612fng_set_action(&left_driver, MOTOR_A, MOTOR_ACTION_BRAKE);
+    //     tb6612fng_set_action(&left_driver, MOTOR_B, MOTOR_ACTION_BRAKE);
+    //     sleep_ms(DELAY_MS);
+    // }
 }

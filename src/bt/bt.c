@@ -2,22 +2,9 @@
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "pico/btstack_cyw43.h"
+#include "bt/peripheral.h"
 
-#include "bluetooth_peripheral.h"
-
-#define LED_DELAY_MS 250
-#define APP_AD_FLAGS 0x06
-
-// Advertising configuration
-// in units of 0.625ms based on bluetooth specifications, so 500ms or twice a second
-#define ADVERTISMENT_INTERVAL_0625MS 800
-// 0 is ADV_IND which is connectable, scannnable, and unidirected
-#define ADVERTISEMENT_TYPE 0
-// 0 means public address
-#define OWN_ADDRESS_TYPE 0
-// 0x07 in binary is 111 which means all channels to advertise as only 3 channels
-#define CHANNEL_MAP 0x07
-#define FILTER_POLICY 0x00
+#include "bp.h"
 
 /*
 
@@ -183,19 +170,6 @@ void bluetooth_init(void)
     printf("Starting BLE server...\n");
     // turn on bluetooth
     hci_power_control(HCI_POWER_ON);
-}
 
-int main()
-{
-    // enable IO for printing
-    stdio_init_all();
-    // delay before any printing to get setup
-    sleep_ms(20000);
-
-    // turn on board
-    hard_assert(cyw43_arch_init() == PICO_OK);
-
-    // start bluetooth
-    bluetooth_init();
     btstack_run_loop_execute();
 }
