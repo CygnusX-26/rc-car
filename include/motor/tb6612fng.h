@@ -22,8 +22,8 @@ typedef struct tb6612fng {
 } tb6612fng_t;
 
 typedef enum {
-    MOTOR_A,
-    MOTOR_B,
+    MOTOR_LEFT,
+    MOTOR_RIGHT,
 } motor_t;
 
 typedef enum {

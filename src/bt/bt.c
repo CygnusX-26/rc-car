@@ -38,6 +38,11 @@ static btstack_packet_callback_registration_t hci_event_callback_registration;
 // consumes the header file generated from GATT
 extern uint8_t const profile_data[];
 
+static bluetooth_command_handler_t g_command_handler = NULL;
+void bluetooth_set_command_handler(bluetooth_command_handler_t handler) {
+    g_command_handler = handler;
+}
+
 // app READ FROM -> car READ FROM HERE
 static uint16_t att_read_callback(hci_con_handle_t connection_handle,
                                   uint16_t att_handle,
@@ -77,8 +82,12 @@ static int att_write_callback(hci_con_handle_t connection_handle,
     {
         uint8_t magnitude = buffer[0];
         // assume little endian sent over
-        uint16_t angle = buffer[1] | (buffer[2] << 8);
+        uint16_t angle = (uint16_t) buffer[1] | ((uint16_t) buffer[2] << 8);
         printf("Magnitude: %d, Angle: %d\n", magnitude, angle);
+
+        if (g_command_handler != NULL) {
+            g_command_handler(magnitude, angle);
+        }
     }
 
     return 0;

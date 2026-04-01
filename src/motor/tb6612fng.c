@@ -52,10 +52,10 @@ void tb6612fng_toggle_enable(const tb6612fng_t *drv, bool enabled) {
 
 void tb6612fng_set_pwm(const tb6612fng_t *drv, motor_t motor, uint8_t pwm) {
     switch (motor) {
-        case MOTOR_A:
+        case MOTOR_LEFT:
             pwm_set_gpio_level(drv->pwma_pin, pwm);
             break;
-        case MOTOR_B:
+        case MOTOR_RIGHT:
             pwm_set_gpio_level(drv->pwmb_pin, pwm);
             break;
     }
@@ -63,10 +63,10 @@ void tb6612fng_set_pwm(const tb6612fng_t *drv, motor_t motor, uint8_t pwm) {
 
 void tb6612fng_set_action(const tb6612fng_t *drv, motor_t motor, motor_action_t action) {
     switch (motor) {
-        case MOTOR_A:
+        case MOTOR_LEFT:
             handle_motor_action(drv->ain1_pin, drv->ain2_pin, action);
             break;
-        case MOTOR_B:
+        case MOTOR_RIGHT:
             handle_motor_action(drv->bin1_pin, drv->bin2_pin, action);
             break;
     }

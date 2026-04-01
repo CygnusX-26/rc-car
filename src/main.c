@@ -3,9 +3,13 @@
 #include "motor/tb6612fng.h"
 #include "pico/cyw43_arch.h"
 
+#include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+
 #define DELAY_MS (2000)
 
-static const tb6612fng_t left_driver = {
+static const tb6612fng_t driver = {
     .stby_pin = 16,
     .pwma_pin = 17,
     .ain1_pin = 18,
@@ -14,6 +18,80 @@ static const tb6612fng_t left_driver = {
     .bin1_pin = 21,
     .bin2_pin = 22,
 };
+
+
+static uint8_t speed_to_pwm(uint8_t speed) {
+    // keep 0 speed as stopped
+    if (speed == 0) {
+        return 0;
+    }
+
+    // map 1-255 to 128-255 because it takes a certain amount for the wheels to move
+    return (uint8_t) (128 + (speed / 2));
+}
+
+static void stop_motor(motor_t motor) {
+    tb6612fng_set_pwm(&driver, motor, 0);
+    tb6612fng_set_action(&driver, motor, MOTOR_ACTION_COAST);
+}
+
+
+static void set_motor_from_command(motor_t motor, float command, uint8_t max_pwm) {
+    if (command > 1.0) {
+        command = 1.0;
+    } else if (command < -1.0) {
+        command = -1.0;
+    }
+
+    float magnitude = fabsf(command);
+
+    if (magnitude < 0.01 || max_pwm == 0) {
+        stop_motor(motor);
+        return;
+    }
+
+    motor_action_t action = command >= 0.0 ? MOTOR_ACTION_FORWARD : MOTOR_ACTION_BACKWARD;
+
+    uint8_t pwm = (uint8_t) lroundf(magnitude * (float) max_pwm);
+    if (pwm < 128) {
+        pwm = 128;
+    }
+    if (pwm > 255) {
+        pwm = 255;
+    }
+
+    tb6612fng_set_action(&driver, motor, action);
+    tb6612fng_set_pwm(&driver, motor, pwm);
+}
+
+static void handle_bluetooth_command(uint8_t speed, uint16_t direction) {
+    if (speed == 0) {
+        stop_motor(MOTOR_LEFT);
+        stop_motor(MOTOR_RIGHT);
+        return;
+    }
+
+    uint8_t pwm = speed_to_pwm(speed);
+
+    // differential drive
+    const float PI = 3.141592;
+    float radians = ((float) direction) * PI / 180.0;
+    float throttle = cosf(radians);
+    float steering = sinf(radians);
+
+    float left = throttle + steering;
+    float right = throttle - steering;
+
+    float max = fmaxf(fabsf(left), fabsf(right));
+    if (max > 1.0) {
+        left /= max;
+        right /= max;
+    }
+
+    set_motor_from_command(MOTOR_LEFT, left, pwm);
+    set_motor_from_command(MOTOR_RIGHT, right, pwm);
+}
+
 
 int main()
 {
@@ -26,6 +104,13 @@ int main()
     hard_assert(cyw43_arch_init() == PICO_OK);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
 
+    tb6612fng_init(&driver);
+    tb6612fng_toggle_enable(&driver, true);
+
+    stop_motor(MOTOR_LEFT);
+    stop_motor(MOTOR_RIGHT);
+
+    bluetooth_set_command_handler(handle_bluetooth_command);
     // start bluetooth, creates bstack infinite loop
     bluetooth_init();
 

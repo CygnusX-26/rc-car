@@ -33,5 +33,6 @@ target_link_libraries(main
     pico_stdlib pico_cyw43_arch_none hardware_pwm
     pico_btstack_ble
     pico_btstack_cyw43
+    m
 )
 pico_btstack_make_gatt_header(main PRIVATE "${CMAKE_CURRENT_LIST_DIR}/src/bt/bp.gatt")

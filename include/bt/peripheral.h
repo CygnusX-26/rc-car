@@ -1,6 +1,8 @@
 #ifndef BLUETOOTH_PERIPHERAL_H
 #define BLUETOOTH_PERIPHERAL_H
 
+#include <stdint.h>
+
 // Advertising configuration
 #define APP_AD_FLAGS 0x06
 // in units of 0.625ms based on bluetooth specifications, so 500ms or twice a second
@@ -13,6 +15,8 @@
 #define CHANNEL_MAP 0x07
 #define FILTER_POLICY 0x00
 
+typedef void (*bluetooth_command_handler_t)(uint8_t speed, uint16_t direction);
+void bluetooth_set_command_handler(bluetooth_command_handler_t handler);
 void bluetooth_init(void);
 
 #endif // BLUETOOTH_PERIPHERAL_H
