@@ -19,6 +19,10 @@ static const tb6612fng_t driver = {
     .bin2_pin = 22,
 };
 
+static bool motor_is_inverted(motor_t motor) {
+    return motor == MOTOR_RIGHT;
+}
+
 
 static uint8_t speed_to_pwm(uint8_t speed) {
     // keep 0 speed as stopped
@@ -48,6 +52,10 @@ static void set_motor_from_command(motor_t motor, float command, uint8_t max_pwm
     if (magnitude < 0.01 || max_pwm == 0) {
         stop_motor(motor);
         return;
+    }
+
+    if (motor_is_inverted(motor)) {
+        command = -command;
     }
 
     motor_action_t action = command >= 0.0 ? MOTOR_ACTION_FORWARD : MOTOR_ACTION_BACKWARD;
@@ -86,6 +94,23 @@ static void handle_bluetooth_command(uint8_t speed, uint16_t direction) {
     if (max > 1.0) {
         left /= max;
         right /= max;
+    }
+
+    // Keep steering in the same travel direction as throttle instead of point turning.
+    if (throttle > 0.0f) {
+        if (left < 0.0f) {
+            left = 0.0f;
+        }
+        if (right < 0.0f) {
+            right = 0.0f;
+        }
+    } else if (throttle < 0.0f) {
+        if (left > 0.0f) {
+            left = 0.0f;
+        }
+        if (right > 0.0f) {
+            right = 0.0f;
+        }
     }
 
     set_motor_from_command(MOTOR_LEFT, left, pwm);
