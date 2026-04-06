@@ -9,7 +9,7 @@
 
 #define DELAY_MS (2000)
 
-static const tb6612fng_t driver = {
+static const tb6612fng_t front_driver = {
     .stby_pin = 16,
     .pwma_pin = 17,
     .ain1_pin = 18,
@@ -17,6 +17,21 @@ static const tb6612fng_t driver = {
     .pwmb_pin = 20,
     .bin1_pin = 21,
     .bin2_pin = 22,
+};
+
+static const tb6612fng_t back_driver = {
+    .stby_pin = 15,
+    .pwma_pin = 14,
+    .ain1_pin = 13,
+    .ain2_pin = 12,
+    .pwmb_pin = 11,
+    .bin1_pin = 10,
+    .bin2_pin = 9,
+};
+
+static const tb6612fng_t *const drivers[] = {
+    &front_driver,
+    &back_driver,
 };
 
 static bool motor_is_inverted(motor_t motor) {
@@ -30,13 +45,15 @@ static uint8_t speed_to_pwm(uint8_t speed) {
         return 0;
     }
 
-    // map 1-255 to 128-255 because it takes a certain amount for the wheels to move
-    return (uint8_t) (128 + (speed / 2));
+    // map 1-255 to 196-255 because it takes a certain amount for the wheels to move
+    return (uint8_t) (196 + (((uint16_t) (speed - 1) * 59) / 254));
 }
 
 static void stop_motor(motor_t motor) {
-    tb6612fng_set_pwm(&driver, motor, 0);
-    tb6612fng_set_action(&driver, motor, MOTOR_ACTION_COAST);
+    for (size_t i = 0; i < sizeof(drivers) / sizeof(drivers[0]); i++) {
+        tb6612fng_set_pwm(drivers[i], motor, 0);
+        tb6612fng_set_action(drivers[i], motor, MOTOR_ACTION_COAST);
+    }
 }
 
 
@@ -68,8 +85,10 @@ static void set_motor_from_command(motor_t motor, float command, uint8_t max_pwm
         pwm = max_pwm;
     }
 
-    tb6612fng_set_action(&driver, motor, action);
-    tb6612fng_set_pwm(&driver, motor, pwm);
+    for (size_t i = 0; i < sizeof(drivers) / sizeof(drivers[0]); i++) {
+        tb6612fng_set_action(drivers[i], motor, action);
+        tb6612fng_set_pwm(drivers[i], motor, pwm);
+    }
 }
 
 static void handle_bluetooth_command(uint8_t speed, uint16_t direction) {
@@ -129,8 +148,10 @@ int main()
     hard_assert(cyw43_arch_init() == PICO_OK);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
 
-    tb6612fng_init(&driver);
-    tb6612fng_toggle_enable(&driver, true);
+    for (size_t i = 0; i < sizeof(drivers) / sizeof(drivers[0]); i++) {
+        tb6612fng_init(drivers[i]);
+        tb6612fng_toggle_enable(drivers[i], true);
+    }
 
     stop_motor(MOTOR_LEFT);
     stop_motor(MOTOR_RIGHT);
