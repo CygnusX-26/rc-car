@@ -9,7 +9,7 @@
 
 #define DELAY_MS (2000)
 
-static const tb6612fng_t driver = {
+static const tb6612fng_t front_driver = {
     .stby_pin = 16,
     .pwma_pin = 17,
     .ain1_pin = 18,
@@ -17,6 +17,16 @@ static const tb6612fng_t driver = {
     .pwmb_pin = 20,
     .bin1_pin = 21,
     .bin2_pin = 22,
+};
+
+static const tb6612fng_t back_driver = {
+    .stby_pin = 2,
+    .pwma_pin = 3,
+    .ain1_pin = 4,
+    .ain2_pin = 5,
+    .pwmb_pin = 6,
+    .bin1_pin = 7,
+    .bin2_pin = 8,
 };
 
 static bool motor_is_inverted(motor_t motor) {
@@ -35,12 +45,13 @@ static uint8_t speed_to_pwm(uint8_t speed) {
 }
 
 static void stop_motor(motor_t motor) {
-    tb6612fng_set_pwm(&driver, motor, 0);
-    tb6612fng_set_action(&driver, motor, MOTOR_ACTION_COAST);
+    tb6612fng_set_pwm(&front_driver, motor, 0);
+    tb6612fng_set_action(&front_driver, motor, MOTOR_ACTION_COAST);
+    tb6612fng_set_pwm(&back_driver, motor, 0);
+    tb6612fng_set_action(&back_driver, motor, MOTOR_ACTION_COAST);
 }
 
-
-static void set_motor_from_command(motor_t motor, float command, uint8_t max_pwm) {
+static void set_motors_from_command(motor_t motor, float command, uint8_t max_pwm) {
     if (command > 1.0) {
         command = 1.0;
     } else if (command < -1.0) {
@@ -68,8 +79,10 @@ static void set_motor_from_command(motor_t motor, float command, uint8_t max_pwm
         pwm = max_pwm;
     }
 
-    tb6612fng_set_action(&driver, motor, action);
-    tb6612fng_set_pwm(&driver, motor, pwm);
+    tb6612fng_set_action(&front_driver, motor, action);
+    tb6612fng_set_pwm(&front_driver, motor, pwm);
+    tb6612fng_set_action(&back_driver, motor, action);
+    tb6612fng_set_pwm(&back_driver, motor, pwm);
 }
 
 static void handle_bluetooth_command(uint8_t speed, uint16_t direction) {
@@ -113,8 +126,8 @@ static void handle_bluetooth_command(uint8_t speed, uint16_t direction) {
         }
     }
 
-    set_motor_from_command(MOTOR_LEFT, left, pwm);
-    set_motor_from_command(MOTOR_RIGHT, right, pwm);
+    set_motors_from_command(MOTOR_LEFT, left, pwm);
+    set_motors_from_command(MOTOR_RIGHT, right, pwm);
 }
 
 
@@ -129,8 +142,10 @@ int main()
     hard_assert(cyw43_arch_init() == PICO_OK);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
 
-    tb6612fng_init(&driver);
-    tb6612fng_toggle_enable(&driver, true);
+    tb6612fng_init(&front_driver);
+    tb6612fng_toggle_enable(&front_driver, true);
+    tb6612fng_init(&back_driver);
+    tb6612fng_toggle_enable(&back_driver, true);
 
     stop_motor(MOTOR_LEFT);
     stop_motor(MOTOR_RIGHT);
