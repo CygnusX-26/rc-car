@@ -49,6 +49,12 @@ static uint8_t speed_to_pwm(uint8_t speed) {
     return (uint8_t) (196 + (((uint16_t) (speed - 1) * 59) / 254));
 }
 
+static uint16_t quantize_direction(uint16_t direction) {
+    uint16_t normalized = direction % 360;
+    uint16_t sector = ((normalized + 22) / 45) % 8;
+    return sector * 45;
+}
+
 static void stop_motor(motor_t motor) {
     for (size_t i = 0; i < sizeof(drivers) / sizeof(drivers[0]); i++) {
         tb6612fng_set_pwm(drivers[i], motor, 0);
@@ -99,10 +105,11 @@ static void handle_bluetooth_command(uint8_t speed, uint16_t direction) {
     }
 
     uint8_t pwm = speed_to_pwm(speed);
+    uint16_t snapped_direction = quantize_direction(direction);
 
-    // differential drive
+    // Interpret the incoming 0-359 heading as one of 8 directions.
     const float PI = 3.141592;
-    float radians = ((float) direction) * PI / 180.0;
+    float radians = ((float) snapped_direction) * PI / 180.0;
     float throttle = cosf(radians);
     float steering = sinf(radians);
 
@@ -142,7 +149,7 @@ int main()
     // enable IO for printing
     stdio_init_all();
     // delay before any printing to get setup
-    sleep_ms(20000);
+
 
     // Init cyw43 board
     hard_assert(cyw43_arch_init() == PICO_OK);
