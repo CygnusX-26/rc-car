@@ -2,7 +2,7 @@
 #include "pico/stdlib.h"
 #include "motor/tb6612fng.h"
 #include "pico/cyw43_arch.h"
-#include "speech/wifi.h"
+#include "wifi/network.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -182,12 +182,14 @@ int main()
     cyw43_arch_enable_sta_mode();
     if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000))
     {
-        printf("Failed to connect to wifi. Speech disabled.\n");
+        printf("\nFailed to connect to wifi. Speech disabled.\n\n");
     }
     else
     {
-        printf("Connected. Speech enabled.\n");
+        printf("\nConnected. Speech enabled.\n\n");
     }
+    // start udp server
+    udp_server_open();
 
     // motors
     for (size_t i = 0; i < sizeof(drivers) / sizeof(drivers[0]); i++)
