@@ -39,7 +39,8 @@ static btstack_packet_callback_registration_t hci_event_callback_registration;
 extern uint8_t const profile_data[];
 
 static bluetooth_command_handler_t g_command_handler = NULL;
-void bluetooth_set_command_handler(bluetooth_command_handler_t handler) {
+void bluetooth_set_command_handler(bluetooth_command_handler_t handler)
+{
     g_command_handler = handler;
 }
 
@@ -82,10 +83,11 @@ static int att_write_callback(hci_con_handle_t connection_handle,
     {
         uint8_t magnitude = buffer[0];
         // assume little endian sent over
-        uint16_t angle = (uint16_t) buffer[1] | ((uint16_t) buffer[2] << 8);
+        uint16_t angle = (uint16_t)buffer[1] | ((uint16_t)buffer[2] << 8);
         printf("Magnitude: %d, Angle: %d\n", magnitude, angle);
 
-        if (g_command_handler != NULL) {
+        if (g_command_handler != NULL)
+        {
             g_command_handler(magnitude, angle);
         }
     }
@@ -183,5 +185,5 @@ void bluetooth_init(void)
     // turn on bluetooth
     hci_power_control(HCI_POWER_ON);
 
-    btstack_run_loop_execute();
+    // btstack_run_loop_execute();
 }
