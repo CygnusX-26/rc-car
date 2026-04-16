@@ -2,6 +2,7 @@
 #include "pico/stdlib.h"
 #include "motor/tb6612fng.h"
 #include "pico/cyw43_arch.h"
+#include "speech/wifi.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -171,12 +172,24 @@ int main()
     // enable IO for printing
     stdio_init_all();
     // delay before any printing to get setup
-    // sleep_ms(20000);
+    sleep_ms(5000);
 
     // Init cyw43 board
     hard_assert(cyw43_arch_init() == PICO_OK);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
 
+    // wifi + audio
+    cyw43_arch_enable_sta_mode();
+    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000))
+    {
+        printf("Failed to connect to wifi. Speech disabled.\n");
+    }
+    else
+    {
+        printf("Connected. Speech enabled.\n");
+    }
+
+    // motors
     for (size_t i = 0; i < sizeof(drivers) / sizeof(drivers[0]); i++)
     {
         tb6612fng_init(drivers[i]);
