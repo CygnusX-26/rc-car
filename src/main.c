@@ -3,6 +3,8 @@
 #include "motor/tb6612fng.h"
 #include "pico/cyw43_arch.h"
 #include "wifi/network.h"
+#include "audio/stream.h"
+#include "pico/multicore.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -178,18 +180,24 @@ int main()
     hard_assert(cyw43_arch_init() == PICO_OK);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
 
-    // wifi + audio
+    // prepare queue for multicore consumer and udp producer
+    queue_init(&pcm_audio_queue, sizeof(pcm_entry_t), PCM_AUDIO_QUEUE_SIZE);
+
+    // other core, audio consumer
+    multicore_launch_core1(second_core_audio_init);
+
+    // wifi
     cyw43_arch_enable_sta_mode();
-    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000))
+    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 10000))
     {
         printf("\nFailed to connect to wifi. Speech disabled.\n\n");
     }
     else
     {
         printf("\nConnected. Speech enabled.\n\n");
+        // current core, start udp producer only if connected
+        udp_server_open();
     }
-    // start udp server
-    udp_server_open();
 
     // motors
     for (size_t i = 0; i < sizeof(drivers) / sizeof(drivers[0]); i++)

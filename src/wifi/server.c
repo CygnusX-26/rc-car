@@ -2,6 +2,7 @@
 #include "wifi/network.h"
 #include "lwip/udp.h"
 #include "lwip/pbuf.h"
+#include "audio/stream.h"
 
 typedef struct UDP_SERVER_T_
 {
@@ -25,21 +26,26 @@ static void udp_receive(void *arg,
         return;
     }
 
-    printf("Got UDP packet from %s:%u, length=%d\n",
-           ipaddr_ntoa(addr),
-           port,
-           p->tot_len);
+    printf("Got UDP packet from %s:%u, length=%d\n", ipaddr_ntoa(addr), port, p->tot_len);
 
-    // print raw bytes
-    uint8_t buf[64];
-    int len = pbuf_copy_partial(p, buf, sizeof(buf), 0);
+    pcm_entry_t entry;
+    // clamp length to buffer size
+    u16_t copy_length = MIN(p->tot_len, PCM_AUDIO_MAX_PACKET_SIZE);
 
-    printf("Data (%d bytes): ", len);
-    for (int i = 0; i < len; i++)
+    // copy over data and length
+    pbuf_copy_partial(p, entry.data, copy_length, 0);
+    entry.length = copy_length;
+
+    // queue is full
+    if (!queue_try_add(&pcm_audio_queue, &entry))
     {
-        printf("%02X ", buf[i]);
+        // try removing oldest
+        pcm_entry_t dummy;
+        queue_try_remove(&pcm_audio_queue, &dummy);
+
+        // try adding again
+        queue_try_add(&pcm_audio_queue, &entry);
     }
-    printf("\n");
 
     // clean up pbuffer
     pbuf_free(p);
