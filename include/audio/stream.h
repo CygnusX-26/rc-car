@@ -6,6 +6,8 @@
 #include <stdint.h>
 
 #define PCM_AUDIO_MAX_PACKET_SIZE 1024
+#define PCM_AUDIO_SAMPLE_SIZE 2
+#define PCM_AUDIO_MAX_UPDATES (PCM_AUDIO_MAX_PACKET_SIZE / PCM_AUDIO_SAMPLE_SIZE)
 #define PCM_AUDIO_QUEUE_SIZE 256
 #define PCM_AUDIO_DELAY_MS 20
 
@@ -16,7 +18,5 @@ typedef struct
 } pcm_entry_t;
 
 extern queue_t pcm_audio_queue;
-
-void second_core_audio_init(void);
 
 #endif // STREAM_H
