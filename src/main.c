@@ -195,7 +195,7 @@ int main()
     #ifdef PAM_TEST
     pam8403_init(&amplifier);
     struct repeating_timer t;
-    pam8403_start_audio(&amplifier, &t);
+    pam8403_start(&amplifier, &t);
 
     // while (1) {
     //     // for (int i = 0; i < 256; i++) {
