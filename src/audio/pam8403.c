@@ -71,7 +71,7 @@ static uint8_t get_next_sample(void)
         pcm_entry_t entry;
         if (!queue_try_remove(&pcm_audio_queue, &entry))
         {
-            return PWM_SILENCE; e
+            return PWM_SILENCE;
         }
         memcpy(pcm_audio_buffer, entry.data, entry.length);
         total_samples = entry.length / PCM_AUDIO_SAMPLE_SIZE;
