@@ -194,15 +194,17 @@ int main()
 
     #ifdef PAM_TEST
     pam8403_init(&amplifier);
+    struct repeating_timer t;
+    pam8403_start_audio(&amplifier, &t);
 
-    while (1) {
-        // for (int i = 0; i < 256; i++) {
-        //     pam8403_write(&amplifier, i);
-        //     sleep_us(50);
-        // }
-        pam8403_write(&amplifier, 50);
-        sleep_us(DELAY_MS);
-    }
+    // while (1) {
+    //     // for (int i = 0; i < 256; i++) {
+    //     //     pam8403_write(&amplifier, i);
+    //     //     sleep_us(50);
+    //     // }
+    //     pam8403_write(&amplifier, 50);
+    //     sleep_us(DELAY_MS);
+    // }
     #endif
 
     // prepare queue for multicore consumer and udp producer
