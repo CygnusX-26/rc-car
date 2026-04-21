@@ -21,6 +21,6 @@ typedef struct pam8403 {
 void pam8403_init(pam8403_t *amp);
 void pam8403_write(pam8403_t *amp, uint8_t data);
 bool pam8403_audio_callback(struct repeating_timer *t);
-void pam8403_start_audio(pam8403_t *amp, struct repeating_timer *t);
+void pam8403_start(pam8403_t *amp, struct repeating_timer *t);
 uint8_t get_next_sample(void);
 #endif
