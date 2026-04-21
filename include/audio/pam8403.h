@@ -28,6 +28,5 @@ void pam8403_init(pam8403_t *amp);
 void pam8403_write(pam8403_t *amp, uint8_t data);
 bool pam8403_audio_callback(struct repeating_timer *t);
 void pam8403_start(pam8403_t *amp, struct repeating_timer *t);
-uint8_t get_next_sample(void);
 void second_core_audio_init(void);
 #endif

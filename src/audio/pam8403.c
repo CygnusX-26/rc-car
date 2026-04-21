@@ -3,6 +3,7 @@
 #include "hardware/pwm.h"
 #include "hardware/irq.h"
 #include "hardware/sync.h"
+#include "pico/stdlib.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -20,7 +21,6 @@ static pam8403_t amplifier = {
 
 static pam8403_t *global_amp;
 
-// Forward declaration
 static uint8_t get_next_sample(void);
 
 static void on_pwm_wrap(void)
