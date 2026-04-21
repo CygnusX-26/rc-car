@@ -3,6 +3,7 @@
 
 #include "pico/util/queue.h"
 #include "lwip/arch.h"
+#include <stdint.h>
 
 #define PCM_AUDIO_MAX_PACKET_SIZE 1024
 #define PCM_AUDIO_QUEUE_SIZE 256

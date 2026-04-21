@@ -1,6 +1,7 @@
 #include "bt/peripheral.h"
 #include "pico/stdlib.h"
 #include "motor/tb6612fng.h"
+#include "audio/pam8403.h"
 #include "pico/cyw43_arch.h"
 #include "wifi/network.h"
 #include "audio/stream.h"
@@ -9,6 +10,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+
+#define PAM_TEST
 
 #define DELAY_MS (2000)
 
@@ -30,6 +33,15 @@ static const tb6612fng_t back_driver = {
     .pwmb_pin = 11,
     .bin1_pin = 10,
     .bin2_pin = 9,
+};
+
+static pam8403_t amplifier = {
+    .pwm_pin = 0,
+    .sample_rate = 8000,
+};
+
+static pam8403_t *const amplifiers[] = {
+    &amplifier,
 };
 
 static const tb6612fng_t *const drivers[] = {
@@ -180,45 +192,58 @@ int main()
     hard_assert(cyw43_arch_init() == PICO_OK);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
 
+    #ifdef PAM_TEST
+    pam8403_init(&amplifier);
+
+    while (1) {
+        // for (int i = 0; i < 256; i++) {
+        //     pam8403_write(&amplifier, i);
+        //     sleep_us(50);
+        // }
+        pam8403_write(&amplifier, 50);
+        sleep_us(DELAY_MS);
+    }
+    #endif
+
     // prepare queue for multicore consumer and udp producer
-    queue_init(&pcm_audio_queue, sizeof(pcm_entry_t), PCM_AUDIO_QUEUE_SIZE);
+    // queue_init(&pcm_audio_queue, sizeof(pcm_entry_t), PCM_AUDIO_QUEUE_SIZE);
 
-    // other core, audio consumer
-    multicore_launch_core1(second_core_audio_init);
+    // // other core, audio consumer
+    // multicore_launch_core1(second_core_audio_init);
 
-    // wifi
-    cyw43_arch_enable_sta_mode();
-    if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 10000))
-    {
-        printf("\nFailed to connect to wifi. Speech disabled.\n\n");
-    }
-    else
-    {
-        printf("\nConnected. Speech enabled.\n\n");
-        // current core, start udp producer only if connected
-        udp_server_open();
-    }
+    // // wifi
+    // cyw43_arch_enable_sta_mode();
+    // if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 10000))
+    // {
+    //     printf("\nFailed to connect to wifi. Speech disabled.\n\n");
+    // }
+    // else
+    // {
+    //     printf("\nConnected. Speech enabled.\n\n");
+    //     // current core, start udp producer only if connected
+    //     udp_server_open();
+    // }
 
-    // motors
-    for (size_t i = 0; i < sizeof(drivers) / sizeof(drivers[0]); i++)
-    {
-        tb6612fng_init(drivers[i]);
-        tb6612fng_toggle_enable(drivers[i], true);
-    }
+    // // motors
+    // for (size_t i = 0; i < sizeof(drivers) / sizeof(drivers[0]); i++)
+    // {
+    //     tb6612fng_init(drivers[i]);
+    //     tb6612fng_toggle_enable(drivers[i], true);
+    // }
 
-    stop_motor(MOTOR_LEFT);
-    stop_motor(MOTOR_RIGHT);
+    // stop_motor(MOTOR_LEFT);
+    // stop_motor(MOTOR_RIGHT);
 
-    bluetooth_set_command_handler(handle_bluetooth_command);
-    // start bluetooth
-    bluetooth_init();
+    // bluetooth_set_command_handler(handle_bluetooth_command);
+    // // start bluetooth
+    // bluetooth_init();
 
-    // infinite loop to allow wifi + bluetoooth callbacks
-    while (1)
-    {
-        async_context_poll(cyw43_arch_async_context());
-        async_context_wait_for_work_until(cyw43_arch_async_context(), at_the_end_of_time);
-    }
+    // // infinite loop to allow wifi + bluetoooth callbacks
+    // while (1)
+    // {
+    //     async_context_poll(cyw43_arch_async_context());
+    //     async_context_wait_for_work_until(cyw43_arch_async_context(), at_the_end_of_time);
+    // }
 
     cyw43_arch_deinit();
 }
