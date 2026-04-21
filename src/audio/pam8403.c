@@ -27,7 +27,7 @@ bool pam8403_audio_callback(struct repeating_timer *t) {
 
 // repeating_timer struct has user data build in
 void pam8403_start(pam8403_t *amp, struct repeating_timer *t) {
-    add_repeating_timer_us(-125, pam8403_audio_callback, amp, t);
+    add_repeating_timer_us(-50, pam8403_audio_callback, amp, t);
 }
 
 uint8_t get_next_sample(void) {
