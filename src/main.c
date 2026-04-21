@@ -171,7 +171,7 @@ int main()
     // enable IO for printing
     stdio_init_all();
     // delay before any printing to get setup
-    // sleep_ms(20000);
+    sleep_ms(5000);
 
     // Init cyw43 board
     hard_assert(cyw43_arch_init() == PICO_OK);
@@ -187,15 +187,6 @@ int main()
     stop_motor(MOTOR_RIGHT);
 
     bluetooth_set_command_handler(handle_bluetooth_command);
-    // start bluetooth
+    // start bluetooth, run bluetooth infinite loop
     bluetooth_init();
-
-    // infinite loop to allow wifi + bluetoooth callbacks
-    while (1)
-    {
-        async_context_poll(cyw43_arch_async_context());
-        async_context_wait_for_work_until(cyw43_arch_async_context(), at_the_end_of_time);
-    }
-
-    cyw43_arch_deinit();
 }

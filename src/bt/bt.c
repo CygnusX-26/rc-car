@@ -71,20 +71,11 @@ static int att_write_callback(hci_con_handle_t connection_handle,
     UNUSED(transaction_mode);
     UNUSED(offset);
 
-    printf("Received %d bytes:\n", buffer_size);
-
-    for (int i = 0; i < buffer_size; i++)
-    {
-        printf("%02x ", buffer[i]);
-    }
-    printf("\n");
-
     if (buffer_size == 3)
     {
         uint8_t magnitude = buffer[0];
         // assume little endian sent over
         uint16_t angle = (uint16_t)buffer[1] | ((uint16_t)buffer[2] << 8);
-        printf("Magnitude: %d, Angle: %d\n", magnitude, angle);
 
         if (g_command_handler != NULL)
         {
@@ -185,5 +176,5 @@ void bluetooth_init(void)
     // turn on bluetooth
     hci_power_control(HCI_POWER_ON);
 
-    // btstack_run_loop_execute();
+    btstack_run_loop_execute();
 }
