@@ -189,8 +189,8 @@ static void handle_bluetooth_command(uint8_t speed, uint16_t direction)
         }
     }
 
-    set_motor_from_command(MOTOR_LEFT, left, pwm);
-    set_motor_from_command(MOTOR_RIGHT, right, pwm);
+    set_motors_from_command(MOTOR_LEFT, left, pwm);
+    set_motors_from_command(MOTOR_RIGHT, right, pwm);
 }
 
 int main()
