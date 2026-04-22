@@ -39,7 +39,8 @@ static btstack_packet_callback_registration_t hci_event_callback_registration;
 extern uint8_t const profile_data[];
 
 static bluetooth_command_handler_t g_command_handler = NULL;
-void bluetooth_set_command_handler(bluetooth_command_handler_t handler) {
+void bluetooth_set_command_handler(bluetooth_command_handler_t handler)
+{
     g_command_handler = handler;
 }
 
@@ -70,22 +71,23 @@ static int att_write_callback(hci_con_handle_t connection_handle,
     UNUSED(transaction_mode);
     UNUSED(offset);
 
-    printf("Received %d bytes:\n", buffer_size);
+    // printf("Received %d bytes:\n", buffer_size);
 
-    for (int i = 0; i < buffer_size; i++)
-    {
-        printf("%02x ", buffer[i]);
-    }
-    printf("\n");
+    // for (int i = 0; i < buffer_size; i++)
+    // {
+    //     printf("%02x ", buffer[i]);
+    // }
+    // printf("\n");
 
     if (buffer_size == 3)
     {
         uint8_t magnitude = buffer[0];
         // assume little endian sent over
-        uint16_t angle = (uint16_t) buffer[1] | ((uint16_t) buffer[2] << 8);
-        printf("Magnitude: %d, Angle: %d\n", magnitude, angle);
+        uint16_t angle = (uint16_t)buffer[1] | ((uint16_t)buffer[2] << 8);
+        // printf("Magnitude: %d, Angle: %d\n", magnitude, angle);
 
-        if (g_command_handler != NULL) {
+        if (g_command_handler != NULL)
+        {
             g_command_handler(magnitude, angle);
         }
     }
@@ -143,7 +145,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
         // start advertising
         gap_advertisements_enable(1);
 
-        printf("Advertising started\n");
+        printf("\nAdvertising started\n\n");
         break;
 
     // disconnected from host
@@ -183,5 +185,5 @@ void bluetooth_init(void)
     // turn on bluetooth
     hci_power_control(HCI_POWER_ON);
 
-    btstack_run_loop_execute();
+    // btstack_run_loop_execute();
 }
