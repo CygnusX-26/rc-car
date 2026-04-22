@@ -14,7 +14,7 @@ static volatile int sample_index  = 0;
 
 static pam8403_t amplifier = {
     .pwm_pin     = 0,
-    .sample_rate = 8000,
+    .sample_rate = 16000,
 };
 
 static pam8403_t *global_amp;

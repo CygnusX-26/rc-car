@@ -3,6 +3,8 @@
 #include "lwip/udp.h"
 #include "lwip/pbuf.h"
 #include "audio/stream.h"
+#include <stdint.h>
+#include <string.h>
 
 typedef struct UDP_SERVER_T_
 {
@@ -12,6 +14,55 @@ typedef struct UDP_SERVER_T_
 static UDP_SERVER_T audio_udp_server;
 static uint32_t packet_count = 0;
 static uint32_t dropped_packet_count = 0;
+
+static void log_audio_packet_stats(const char *data,
+                                   u16_t length,
+                                   const ip_addr_t *addr,
+                                   u16_t port)
+{
+    int16_t min_sample = INT16_MAX;
+    int16_t max_sample = INT16_MIN;
+    uint32_t sum_abs = 0;
+    uint32_t active_samples = 0;
+    size_t sample_count = length / PCM_AUDIO_SAMPLE_SIZE;
+
+    for (size_t i = 0; i < sample_count; i++)
+    {
+        int16_t sample;
+        memcpy(&sample, &data[i * PCM_AUDIO_SAMPLE_SIZE], PCM_AUDIO_SAMPLE_SIZE);
+
+        if (sample < min_sample)
+        {
+            min_sample = sample;
+        }
+        if (sample > max_sample)
+        {
+            max_sample = sample;
+        }
+
+        int32_t magnitude = sample < 0 ? -(int32_t)sample : (int32_t)sample;
+        sum_abs += (uint32_t)magnitude;
+
+        if (magnitude > 512)
+        {
+            active_samples++;
+        }
+    }
+
+    uint32_t avg_abs = sample_count > 0 ? (sum_abs / (uint32_t)sample_count) : 0;
+
+    printf("Audio UDP packets=%lu last_len=%u samples=%u min=%d max=%d avg_abs=%lu active=%lu dropped=%lu from %s:%u\n",
+           (unsigned long)packet_count,
+           length,
+           (unsigned)sample_count,
+           min_sample,
+           max_sample,
+           (unsigned long)avg_abs,
+           (unsigned long)active_samples,
+           (unsigned long)dropped_packet_count,
+           ipaddr_ntoa(addr),
+           port);
+}
 
 static void udp_receive(void *arg,
                         struct udp_pcb *pcb,
@@ -60,12 +111,7 @@ static void udp_receive(void *arg,
     packet_count++;
     if (packet_count <= 5 || (packet_count % 50) == 0)
     {
-        printf("Audio UDP packets=%lu last_len=%u dropped=%lu from %s:%u\n",
-               (unsigned long)packet_count,
-               copy_length,
-               (unsigned long)dropped_packet_count,
-               ipaddr_ntoa(addr),
-               port);
+        log_audio_packet_stats(entry.data, copy_length, addr, port);
     }
 
     // clean up pbuffer
