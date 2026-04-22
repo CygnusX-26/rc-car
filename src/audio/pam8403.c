@@ -7,18 +7,12 @@
 #include <stdio.h>
 #include <string.h>
 
-// Carrier = 125MHz / 3125 = 40kHz  (well above 4kHz audio bandwidth)
-// Sample rate = 40kHz / 5 = 8000Hz exactly
-#define PWM_WRAP          3124
-#define WRAPS_PER_SAMPLE  5
-#define PWM_SILENCE       (PWM_WRAP / 2)  // mid-rail = silence
-
 queue_t pcm_audio_queue;
-char    pcm_audio_buffer[PCM_AUDIO_MAX_PACKET_SIZE];
+char pcm_audio_buffer[PCM_AUDIO_MAX_PACKET_SIZE];
 
-static volatile int      total_samples = 0;
-static volatile int      sample_index  = 0;
-static volatile uint32_t wrap_counter  = 0;
+// Protected by disabling PWM_IRQ_WRAP before access
+static volatile int total_samples = 0;
+static volatile int sample_index  = 0;
 
 static pam8403_t amplifier = {
     .pwm_pin     = 0,
@@ -27,21 +21,17 @@ static pam8403_t amplifier = {
 
 static pam8403_t *global_amp;
 
-static uint16_t get_next_sample(void);
+// Forward declaration
+static uint8_t get_next_sample(void);
 
 static void on_pwm_wrap(void)
 {
     pwm_clear_irq(global_amp->pwm_slice);
-
-    if (++wrap_counter >= WRAPS_PER_SAMPLE)
-    {
-        wrap_counter = 0;
-        pwm_set_chan_level(
-            global_amp->pwm_slice,
-            global_amp->pwm_channel,
-            get_next_sample()
-        );
-    }
+    pwm_set_chan_level(
+        global_amp->pwm_slice,
+        global_amp->pwm_channel,
+        get_next_sample()
+    );
 }
 
 void pam8403_init(pam8403_t *amp)
@@ -52,11 +42,12 @@ void pam8403_init(pam8403_t *amp)
     amp->pwm_slice   = pwm_gpio_to_slice_num(amp->pwm_pin);
     amp->pwm_channel = pwm_gpio_to_channel(amp->pwm_pin);
 
-    // clkdiv=1 (integer, exact), wrap=3124
-    // → carrier = 125MHz / 3125 = 40kHz
-    // → 3125 PWM levels → slightly better than 8-bit resolution
-    pwm_set_wrap(amp->pwm_slice, PWM_WRAP);
-    pwm_set_clkdiv(amp->pwm_slice, 1.0f);
+    // PWM resolution: 256 levels (0–255)
+    // clkdiv = f_sys / (wrap+1) / sample_rate
+    //        = 125,000,000 / 256 / 8000 ≈ 61.04
+    pwm_set_wrap(amp->pwm_slice, 255);
+    float clkdiv = (float)125000000 / 256.0f / (float)amp->sample_rate;
+    pwm_set_clkdiv(amp->pwm_slice, clkdiv);
 
     pwm_set_chan_level(amp->pwm_slice, amp->pwm_channel, PWM_SILENCE);
 
@@ -68,13 +59,13 @@ void pam8403_init(pam8403_t *amp)
     pwm_set_enabled(amp->pwm_slice, true);
 }
 
-
-static uint16_t pcm16_to_pwm(int16_t pcm_sample)
+static uint8_t pcm16_to_pwm8(int16_t pcm_sample)
 {
-    return (uint16_t)(((uint32_t)((int32_t)pcm_sample + 32768) * 3125) >> 16);
+    // Shift signed 16-bit PCM into unsigned 8-bit PWM range
+    return (uint8_t)((pcm_sample + 32768) >> 8);
 }
 
-static uint16_t get_next_sample(void)
+static uint8_t get_next_sample(void)
 {
     if (total_samples == 0)
     {
@@ -100,7 +91,7 @@ static uint16_t get_next_sample(void)
         total_samples = 0;
     }
 
-    return pcm16_to_pwm(pcm_sample);
+    return pcm16_to_pwm8(pcm_sample);
 }
 
 void second_core_audio_init(void)

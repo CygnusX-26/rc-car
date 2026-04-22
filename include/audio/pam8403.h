@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define PWM_SILENCE 128
+
 typedef struct pam8403
 {
     uint8_t pwm_pin; // GPIO0
