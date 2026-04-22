@@ -40,6 +40,27 @@ static const tb6612fng_t *const drivers[] = {
     &back_driver,
 };
 
+void audio_packet_indicator_poll(void)
+{
+    static uint32_t last_audio_packet_count = 0;
+    static absolute_time_t led_deadline;
+    static bool led_active = false;
+
+    if (audio_packet_count != last_audio_packet_count)
+    {
+        last_audio_packet_count = audio_packet_count;
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
+        led_deadline = make_timeout_time_ms(100);
+        led_active = true;
+    }
+
+    if (led_active && absolute_time_diff_us(get_absolute_time(), led_deadline) <= 0)
+    {
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, false);
+        led_active = false;
+    }
+}
+
 static bool motor_is_inverted(motor_t motor)
 {
     return motor == MOTOR_RIGHT;
@@ -181,7 +202,7 @@ int main()
 
     // Init cyw43 board
     hard_assert(cyw43_arch_init() == PICO_OK);
-    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, false);
 
     // prepare queue for multicore consumer and udp producer
     queue_init(&pcm_audio_queue, sizeof(pcm_entry_t), PCM_AUDIO_QUEUE_SIZE);
@@ -219,6 +240,7 @@ int main()
     // infinite loop to allow wifi + bluetoooth callbacks
     while (1)
     {
+        audio_packet_indicator_poll();
         async_context_poll(cyw43_arch_async_context());
         async_context_wait_for_work_until(cyw43_arch_async_context(), at_the_end_of_time);
     }

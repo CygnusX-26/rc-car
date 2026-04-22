@@ -9,6 +9,9 @@
 queue_t pcm_audio_queue;
 char pcm_audio_buffer[PCM_AUDIO_MAX_PACKET_SIZE];
 
+#define AUDIO_PREROLL_PACKETS 2
+#define AUDIO_STREAM_IDLE_TIMEOUT_SAMPLES 8000
+
 static volatile int total_samples = 0;
 static volatile int sample_index  = 0;
 
@@ -22,6 +25,8 @@ static struct repeating_timer sample_timer;
 static bool pwm_output_enabled = false;
 static uint32_t test_tone_phase = 0;
 static uint32_t test_tone_samples_remaining = 0;
+static bool stream_started = false;
+static uint32_t stream_idle_samples_remaining = 0;
 
 // Forward declaration
 static bool get_next_sample(uint16_t *sample_level);
@@ -106,14 +111,32 @@ static bool get_next_sample(uint16_t *sample_level)
 
     if (total_samples == 0)
     {
+        if (!stream_started)
+        {
+            if (queue_get_level(&pcm_audio_queue) < AUDIO_PREROLL_PACKETS)
+            {
+                return false;
+            }
+            stream_started = true;
+        }
+
         pcm_entry_t entry;
         if (!queue_try_remove(&pcm_audio_queue, &entry))
         {
+            if (stream_started && stream_idle_samples_remaining > 0)
+            {
+                stream_idle_samples_remaining--;
+                *sample_level = PWM_SILENCE;
+                return true;
+            }
+
+            stream_started = false;
             return false;
         }
         memcpy(pcm_audio_buffer, entry.data, entry.length);
         total_samples = entry.length / PCM_AUDIO_SAMPLE_SIZE;
         sample_index  = 0;
+        stream_idle_samples_remaining = AUDIO_STREAM_IDLE_TIMEOUT_SAMPLES;
     }
 
     int16_t pcm_sample;
