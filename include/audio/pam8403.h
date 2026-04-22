@@ -7,7 +7,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define PWM_SILENCE 128
+#define PWM_WRAP 1023u
+#define PWM_SILENCE ((PWM_WRAP + 1u) / 2u)
 
 typedef struct pam8403
 {
@@ -25,8 +26,5 @@ typedef struct pam8403
     }
 
 void pam8403_init(pam8403_t *amp);
-void pam8403_write(pam8403_t *amp, uint8_t data);
-bool pam8403_audio_callback(struct repeating_timer *t);
-void pam8403_start(pam8403_t *amp, struct repeating_timer *t);
 void second_core_audio_init(void);
 #endif

@@ -1,16 +1,14 @@
 #include "audio/pam8403.h"
 #include "audio/stream.h"
 #include "hardware/pwm.h"
-#include "hardware/irq.h"
-#include "hardware/sync.h"
 #include "pico/stdlib.h"
+#include "pico/time.h"
 #include <stdio.h>
 #include <string.h>
 
 queue_t pcm_audio_queue;
 char pcm_audio_buffer[PCM_AUDIO_MAX_PACKET_SIZE];
 
-// Protected by disabling PWM_IRQ_WRAP before access
 static volatile int total_samples = 0;
 static volatile int sample_index  = 0;
 
@@ -20,18 +18,19 @@ static pam8403_t amplifier = {
 };
 
 static pam8403_t *global_amp;
+static struct repeating_timer sample_timer;
 
 // Forward declaration
-static uint8_t get_next_sample(void);
+static uint16_t get_next_sample(void);
 
-static void on_pwm_wrap(void)
+static bool on_sample_timer(__unused struct repeating_timer *t)
 {
-    pwm_clear_irq(global_amp->pwm_slice);
     pwm_set_chan_level(
         global_amp->pwm_slice,
         global_amp->pwm_channel,
         get_next_sample()
     );
+    return true;
 }
 
 void pam8403_init(pam8403_t *amp)
@@ -42,30 +41,26 @@ void pam8403_init(pam8403_t *amp)
     amp->pwm_slice   = pwm_gpio_to_slice_num(amp->pwm_pin);
     amp->pwm_channel = pwm_gpio_to_channel(amp->pwm_pin);
 
-    // PWM resolution: 256 levels (0–255)
-    // clkdiv = f_sys / (wrap+1) / sample_rate
-    //        = 125,000,000 / 256 / 8000 ≈ 61.04
-    pwm_set_wrap(amp->pwm_slice, 255);
-    float clkdiv = (float)125000000 / 256.0f / (float)amp->sample_rate;
-    pwm_set_clkdiv(amp->pwm_slice, clkdiv);
+    // Keep the PWM carrier ultrasonic and update the duty cycle separately
+    // at the audio sample rate. With wrap=1023 and clkdiv=1, carrier is
+    // ~122 kHz on RP2040 and ~146 kHz on RP2350.
+    pwm_set_wrap(amp->pwm_slice, PWM_WRAP);
+    pwm_set_clkdiv(amp->pwm_slice, 1.0f);
 
     pwm_set_chan_level(amp->pwm_slice, amp->pwm_channel, PWM_SILENCE);
-
-    pwm_clear_irq(amp->pwm_slice);
-    pwm_set_irq_enabled(amp->pwm_slice, true);
-    irq_set_exclusive_handler(PWM_IRQ_WRAP, on_pwm_wrap);
-    irq_set_enabled(PWM_IRQ_WRAP, true);
-
     pwm_set_enabled(amp->pwm_slice, true);
+
+    int64_t sample_period_us = -(1000000ll / (int64_t)amp->sample_rate);
+    add_repeating_timer_us(sample_period_us, on_sample_timer, NULL, &sample_timer);
 }
 
-static uint8_t pcm16_to_pwm8(int16_t pcm_sample)
+static uint16_t pcm16_to_pwm_level(int16_t pcm_sample)
 {
-    // Shift signed 16-bit PCM into unsigned 8-bit PWM range
-    return (uint8_t)((pcm_sample + 32768) >> 8);
+    // Shift signed 16-bit PCM into the configured unsigned PWM range.
+    return (uint16_t)(((uint16_t)(pcm_sample + 32768)) >> 6);
 }
 
-static uint8_t get_next_sample(void)
+static uint16_t get_next_sample(void)
 {
     if (total_samples == 0)
     {
@@ -91,7 +86,7 @@ static uint8_t get_next_sample(void)
         total_samples = 0;
     }
 
-    return pcm16_to_pwm8(pcm_sample);
+    return pcm16_to_pwm_level(pcm_sample);
 }
 
 void second_core_audio_init(void)
