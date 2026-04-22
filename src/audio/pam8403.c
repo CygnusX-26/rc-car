@@ -19,17 +19,49 @@ static pam8403_t amplifier = {
 
 static pam8403_t *global_amp;
 static struct repeating_timer sample_timer;
+static bool pwm_output_enabled = false;
+static uint32_t test_tone_phase = 0;
+static uint32_t test_tone_samples_remaining = 0;
 
 // Forward declaration
-static uint16_t get_next_sample(void);
+static bool get_next_sample(uint16_t *sample_level);
+
+static void enable_pwm_output(void)
+{
+    if (pwm_output_enabled)
+    {
+        return;
+    }
+
+    gpio_set_function(global_amp->pwm_pin, GPIO_FUNC_PWM);
+    pwm_set_chan_level(global_amp->pwm_slice, global_amp->pwm_channel, PWM_SILENCE);
+    pwm_set_enabled(global_amp->pwm_slice, true);
+    pwm_output_enabled = true;
+}
+
+static void disable_pwm_output(void)
+{
+    if (pwm_output_enabled)
+    {
+        pwm_set_enabled(global_amp->pwm_slice, false);
+    }
+    gpio_set_function(global_amp->pwm_pin, GPIO_FUNC_SIO);
+    gpio_set_dir(global_amp->pwm_pin, GPIO_OUT);
+    gpio_put(global_amp->pwm_pin, 0);
+    pwm_output_enabled = false;
+}
 
 static bool on_sample_timer(__unused struct repeating_timer *t)
 {
-    pwm_set_chan_level(
-        global_amp->pwm_slice,
-        global_amp->pwm_channel,
-        get_next_sample()
-    );
+    uint16_t sample_level;
+    if (!get_next_sample(&sample_level))
+    {
+        disable_pwm_output();
+        return true;
+    }
+
+    enable_pwm_output();
+    pwm_set_chan_level(global_amp->pwm_slice, global_amp->pwm_channel, sample_level);
     return true;
 }
 
@@ -46,9 +78,7 @@ void pam8403_init(pam8403_t *amp)
     // ~122 kHz on RP2040 and ~146 kHz on RP2350.
     pwm_set_wrap(amp->pwm_slice, PWM_WRAP);
     pwm_set_clkdiv(amp->pwm_slice, 1.0f);
-
-    pwm_set_chan_level(amp->pwm_slice, amp->pwm_channel, PWM_SILENCE);
-    pwm_set_enabled(amp->pwm_slice, true);
+    disable_pwm_output();
 
     int64_t sample_period_us = -(1000000ll / (int64_t)amp->sample_rate);
     add_repeating_timer_us(sample_period_us, on_sample_timer, NULL, &sample_timer);
@@ -60,14 +90,26 @@ static uint16_t pcm16_to_pwm_level(int16_t pcm_sample)
     return (uint16_t)(((uint16_t)(pcm_sample + 32768)) >> 6);
 }
 
-static uint16_t get_next_sample(void)
+static bool get_next_sample(uint16_t *sample_level)
 {
+    if (test_tone_samples_remaining > 0)
+    {
+        // Short square-wave chirp at boot to verify the amplifier path without Wi-Fi.
+        test_tone_phase += 880u;
+        *sample_level = (test_tone_phase >= amplifier.sample_rate / 2u)
+            ? pcm16_to_pwm_level(18000)
+            : pcm16_to_pwm_level(-18000);
+        test_tone_phase %= amplifier.sample_rate;
+        test_tone_samples_remaining--;
+        return true;
+    }
+
     if (total_samples == 0)
     {
         pcm_entry_t entry;
         if (!queue_try_remove(&pcm_audio_queue, &entry))
         {
-            return PWM_SILENCE;
+            return false;
         }
         memcpy(pcm_audio_buffer, entry.data, entry.length);
         total_samples = entry.length / PCM_AUDIO_SAMPLE_SIZE;
@@ -86,11 +128,13 @@ static uint16_t get_next_sample(void)
         total_samples = 0;
     }
 
-    return pcm16_to_pwm_level(pcm_sample);
+    *sample_level = pcm16_to_pwm_level(pcm_sample);
+    return true;
 }
 
 void second_core_audio_init(void)
 {
     printf("Starting audio consumer on second core\n");
+    test_tone_samples_remaining = amplifier.sample_rate / 8u;
     pam8403_init(&amplifier);
 }

@@ -10,6 +10,8 @@ typedef struct UDP_SERVER_T_
 } UDP_SERVER_T;
 
 static UDP_SERVER_T audio_udp_server;
+static uint32_t packet_count = 0;
+static uint32_t dropped_packet_count = 0;
 
 static void udp_receive(void *arg,
                         struct udp_pcb *pcb,
@@ -31,6 +33,13 @@ static void udp_receive(void *arg,
     pcm_entry_t entry;
     // clamp length to buffer size
     u16_t copy_length = MIN(p->tot_len, PCM_AUDIO_MAX_PACKET_SIZE);
+    copy_length -= (copy_length % PCM_AUDIO_SAMPLE_SIZE);
+
+    if (copy_length == 0)
+    {
+        pbuf_free(p);
+        return;
+    }
 
     // copy over data and length
     pbuf_copy_partial(p, entry.data, copy_length, 0);
@@ -42,9 +51,21 @@ static void udp_receive(void *arg,
         // try removing oldest
         pcm_entry_t dummy;
         queue_try_remove(&pcm_audio_queue, &dummy);
+        dropped_packet_count++;
 
         // try adding again
         queue_try_add(&pcm_audio_queue, &entry);
+    }
+
+    packet_count++;
+    if (packet_count <= 5 || (packet_count % 50) == 0)
+    {
+        printf("Audio UDP packets=%lu last_len=%u dropped=%lu from %s:%u\n",
+               (unsigned long)packet_count,
+               copy_length,
+               (unsigned long)dropped_packet_count,
+               ipaddr_ntoa(addr),
+               port);
     }
 
     // clean up pbuffer
