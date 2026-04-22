@@ -86,6 +86,7 @@ static int att_write_callback(hci_con_handle_t connection_handle,
         // assume little endian sent over
         uint16_t angle = (uint16_t)buffer[1] | ((uint16_t)buffer[2] << 8);
 
+        printf("Magnitude: %u, Angle: %u\n", magnitude, angle);
         if (g_command_handler != NULL)
         {
             g_command_handler(magnitude, angle);
@@ -93,15 +94,19 @@ static int att_write_callback(hci_con_handle_t connection_handle,
     }
 
     // voice command
-    if (att_handle == ATT_CHARACTERISTIC_BBBC_01_VALUE_HANDLE && buffer_size == 1)
+    if (att_handle == ATT_CHARACTERISTIC_CCCC_01_VALUE_HANDLE && buffer_size == 1)
     {
         uint8_t voice_command = buffer[0];
 
         if (voice_command == LIGHT_ON_COMMAND)
         {
+            printf("Turning on light\n");
+            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
         }
         else if (voice_command == LIGHT_OFF_COMMAND)
         {
+            printf("Turning off light\n");
+            cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, false);
         }
     }
 

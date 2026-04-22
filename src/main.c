@@ -2,6 +2,8 @@
 #include "pico/stdlib.h"
 #include "motor/tb6612fng.h"
 #include "pico/cyw43_arch.h"
+#include "wifi/network.h"
+#include "pico/multicore.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -176,6 +178,9 @@ int main()
     // Init cyw43 board
     hard_assert(cyw43_arch_init() == PICO_OK);
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
+
+    // other core, wifi audio consumer
+    multicore_launch_core1(second_core_init);
 
     for (size_t i = 0; i < sizeof(drivers) / sizeof(drivers[0]); i++)
     {
