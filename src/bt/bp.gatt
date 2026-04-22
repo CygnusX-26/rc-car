@@ -12,6 +12,10 @@ CHARACTERISTIC, GATT_DATABASE_HASH, READ,
 
 PRIMARY_SERVICE, AAAA
 
-// phone -> car
 // steering + throttle
+// phone -> car
 CHARACTERISTIC, BBBB, WRITE_WITHOUT_RESPONSE | DYNAMIC
+
+// voice control
+// phone -> car AND car -> phone
+CHARACTERISTIC, BBBC, WRITE_WITHOUT_RESPONSE | DYNAMIC

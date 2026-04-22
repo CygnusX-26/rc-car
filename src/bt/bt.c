@@ -71,7 +71,16 @@ static int att_write_callback(hci_con_handle_t connection_handle,
     UNUSED(transaction_mode);
     UNUSED(offset);
 
-    if (buffer_size == 3)
+    // printf("Received %d bytes:\n", buffer_size);
+
+    // for (int i = 0; i < buffer_size; i++)
+    // {
+    //     printf("%02x ", buffer[i]);
+    // }
+    // printf("\n");
+
+    // driving
+    if (att_handle == ATT_CHARACTERISTIC_BBBB_01_VALUE_HANDLE && buffer_size == 3)
     {
         uint8_t magnitude = buffer[0];
         // assume little endian sent over
@@ -80,6 +89,19 @@ static int att_write_callback(hci_con_handle_t connection_handle,
         if (g_command_handler != NULL)
         {
             g_command_handler(magnitude, angle);
+        }
+    }
+
+    // voice command
+    if (att_handle == ATT_CHARACTERISTIC_BBBC_01_VALUE_HANDLE && buffer_size == 1)
+    {
+        uint8_t voice_command = buffer[0];
+
+        if (voice_command == LIGHT_ON_COMMAND)
+        {
+        }
+        else if (voice_command == LIGHT_OFF_COMMAND)
+        {
         }
     }
 

@@ -15,6 +15,9 @@
 #define CHANNEL_MAP 0x07
 #define FILTER_POLICY 0x00
 
+#define LIGHT_ON_COMMAND 0X00
+#define LIGHT_OFF_COMMAND 0x01
+
 typedef void (*bluetooth_command_handler_t)(uint8_t speed, uint16_t direction);
 void bluetooth_set_command_handler(bluetooth_command_handler_t handler);
 void bluetooth_init(void);
