@@ -13,6 +13,11 @@ https://github.com/raspberrypi/pico-examples/tree/master/pico_w/bt/standalone
 
 */
 
+char bonjour_Ids[MAX_BONJOUR_CONNECTIONS][BONJOUR_ID_LENGTH];
+hci_con_handle_t bonjour_handles[MAX_BONJOUR_CONNECTIONS];
+uint8_t bonjour_payload[MAX_BONJOUR_CONNECTIONS * BONJOUR_ID_LENGTH];
+int total = 0;
+
 static uint8_t advertisement_data[] = {
     // flags general discoverable
     0x02,
@@ -94,19 +99,62 @@ static int att_write_callback(hci_con_handle_t connection_handle,
     }
 
     // voice command
-    if (att_handle == ATT_CHARACTERISTIC_CCCC_01_VALUE_HANDLE && buffer_size == 1)
+    if (att_handle == ATT_CHARACTERISTIC_CCCC_01_VALUE_HANDLE && buffer_size >= 1)
     {
         uint8_t voice_command = buffer[0];
 
-        if (voice_command == LIGHT_ON_COMMAND)
+        if (voice_command == LIGHT_ON_COMMAND && buffer_size == 1)
         {
             printf("Turning on light\n");
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, true);
         }
-        else if (voice_command == LIGHT_OFF_COMMAND)
+        else if (voice_command == LIGHT_OFF_COMMAND && buffer_size == 1)
         {
             printf("Turning off light\n");
             cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, false);
+        }
+        else if (voice_command == BONJOUR_COMMAND && buffer_size == 1 + BONJOUR_ID_LENGTH)
+        {
+            printf("Bonjour!\n");
+
+            for (int i = 0; i < MAX_BONJOUR_CONNECTIONS; i++)
+            {
+                if (bonjour_handles[i] == INVALID_HANDLE)
+                {
+                    memcpy(bonjour_Ids[i], &buffer[1], BONJOUR_ID_LENGTH);
+                    bonjour_handles[i] = connection_handle;
+                    total += 1;
+
+                    if (total < MAX_BONJOUR_CONNECTIONS)
+                    {
+                        hci_send_cmd(&hci_le_set_advertise_enable, 1);
+                    }
+
+                    break;
+                }
+            }
+
+            int offset = 0;
+
+            for (int i = 0; i < MAX_BONJOUR_CONNECTIONS; i++)
+            {
+                if (bonjour_handles[i] != INVALID_HANDLE)
+                {
+                    memcpy(&bonjour_payload[offset], bonjour_Ids[i], BONJOUR_ID_LENGTH);
+                    offset += BONJOUR_ID_LENGTH;
+                }
+            }
+
+            for (int i = 0; i < MAX_BONJOUR_CONNECTIONS; i++)
+            {
+                if (bonjour_handles[i] != INVALID_HANDLE)
+                {
+                    att_server_notify(bonjour_handles[i],
+                                      ATT_CHARACTERISTIC_CCCC_01_VALUE_HANDLE,
+                                      bonjour_payload,
+                                      sizeof(bonjour_payload));
+                }
+            }
         }
     }
 
@@ -166,9 +214,27 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
         printf("Advertising started\n");
         break;
 
+    // connected
+    case HCI_EVENT_CONNECTION_COMPLETE:
+        printf("Connected\n");
+
+        break;
+
     // disconnected from host
     case HCI_EVENT_DISCONNECTION_COMPLETE:
         printf("Disconnected\n");
+        uint16_t connection_handle = hci_event_disconnection_complete_get_connection_handle(packet);
+
+        for (int i = 0; i < MAX_BONJOUR_CONNECTIONS; i++)
+        {
+            if (bonjour_handles[i] == connection_handle)
+            {
+                bonjour_handles[i] = INVALID_HANDLE;
+                total--;
+                break;
+            }
+        }
+
         break;
 
     // we are ready to send
@@ -202,6 +268,11 @@ void bluetooth_init(void)
     printf("Starting BLE server...\n");
     // turn on bluetooth
     hci_power_control(HCI_POWER_ON);
+
+    for (int i = 0; i < MAX_BONJOUR_CONNECTIONS; i++)
+    {
+        bonjour_handles[i] = INVALID_HANDLE;
+    }
 
     btstack_run_loop_execute();
 }
